@@ -1,12 +1,43 @@
-import React from 'react';
+import { FunctionComponent, useState } from 'react';
 
+import todos from '../store/todos';
 
-function App() {
+import Button from './ui/Button';
+import Header from './ui/Header';
+import Footer from './ui/Footer';
+import ModalWindow from './ui/ModalWindow';
+import TodoList from './TodoList';
+import TodoDetails from './TodoDetails';
+
+const App: FunctionComponent = () => {
+  const [isModalShown, setIsModalShown] = useState(false);
+
+  function modalWindowToggler() {
+    setIsModalShown(prevModalState => !prevModalState);
+  }
+
   return (
-    <div className="App">
-      
-    </div>
+    <>
+      <Header modalToggler={modalWindowToggler} />
+      <main className='container main'>
+        {
+          isModalShown &&
+          <ModalWindow modalToggler={modalWindowToggler}>
+            <Button
+              btnText='add todo'
+              onClick={() => {
+                todos.addTask()
+                modalWindowToggler();
+              }}
+            />
+          </ModalWindow>
+        }
+        <TodoList />
+        <TodoDetails />
+      </main>
+      <Footer />
+    </>
   );
-}
+};
 
 export default App;

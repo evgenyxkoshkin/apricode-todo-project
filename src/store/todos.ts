@@ -2,16 +2,17 @@ import { makeAutoObservable } from 'mobx';
 import { v4 as uuidv4 } from 'uuid';
 
 import { TodoType } from '../types/types';
-import { recursionFilter, recursionCompleteToggler, recursionSearch, subTaskAdding } from '../utils/utils';
+import { recursionFilter, recursionCompleteToggler, subTaskAdding } from '../utils/utils';
 
 class Todos {
-  todoArray:TodoType[] = localStorage.todos ? JSON.parse(localStorage.todos) : [];
-  activeTask:TodoType | null = null;
+  todoArray: TodoType[] = localStorage.todos ? JSON.parse(localStorage.todos) : [];
+  activeTask: TodoType | null = null;
   todoTitle = '';
   todoText = '';
+  isModalOpen = false;
 
   constructor() {
-    makeAutoObservable(this)
+    makeAutoObservable(this);
   }
 
   titleHandler = (str: string) => {
@@ -20,6 +21,14 @@ class Todos {
 
   textHandler = (str: string) => {
     this.todoText = str;
+  }
+
+  openModal = () => {
+    this.isModalOpen = true;
+  }
+
+  closeModal = () => {
+    this.isModalOpen = false;
   }
 
   addTask = () => {
@@ -35,6 +44,7 @@ class Todos {
       localStorage.setItem('todos', JSON.stringify(this.todoArray));
       this.todoTitle = '';
       this.todoText = '';
+      this.closeModal();
     }
   }
 
@@ -52,6 +62,7 @@ class Todos {
       localStorage.setItem('todos', JSON.stringify(this.todoArray));
       this.todoTitle = '';
       this.todoText = '';
+      this.closeModal();
     }
   }
 
@@ -69,9 +80,41 @@ class Todos {
     this.todoArray = recursionCompleteToggler(id, this.todoArray);
     localStorage.setItem('todos', JSON.stringify(this.todoArray));
   }
+  
+  findTaskRecursive = (tasks: TodoType[], id: string): TodoType | null => {
+    for (const task of tasks) {
+      if (task.id === id) {
+        return task;
+      } else if (task.subTasks.length > 0) {
+        const foundTask = this.findTaskRecursive(task.subTasks, id);
+        if (foundTask) {
+          return foundTask;
+        }
+      }
+    }
+    return null;
+  }
 
   chooseTask = (id: string) => {
-    this.activeTask = recursionSearch(id, this.todoArray);
+    this.activeTask = this.findTaskRecursive(this.todoArray, id);
+  }
+
+  updateTask = (id: string, newTitle: string, newText: string) => {
+    const updateTaskRecursive = (tasks: TodoType[]): TodoType[] => {
+      return tasks.map(task => {
+        if (task.id === id) {
+          return { ...task, title: newTitle, text: newText };
+        } else if (task.subTasks.length > 0) {
+          return { ...task, subTasks: updateTaskRecursive(task.subTasks) };
+        }
+        return task;
+      });
+    };
+  
+    this.todoArray = updateTaskRecursive(this.todoArray);
+    localStorage.setItem('todos', JSON.stringify(this.todoArray));
+  
+    this.activeTask = this.findTaskRecursive(this.todoArray, id);
   }
 }
 
